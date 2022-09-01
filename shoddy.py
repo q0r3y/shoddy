@@ -63,7 +63,6 @@ def print_sha256(file_name):
 
 def set_download_progress(dl):
     existing_chunk_pos = path.getsize(dl.file_name_part)
-    print(existing_chunk_pos)
     index = 0
     for chunk in dl.chunk_indexes:
         if (chunk[0] == existing_chunk_pos) or (chunk[1] == existing_chunk_pos):
@@ -72,8 +71,6 @@ def set_download_progress(dl):
             break
         # File exists but didn't leave off at a known chunk position
         elif (existing_chunk_pos > chunk[0]) and (existing_chunk_pos < chunk[1]):
-            print('Existing position is between chunk beginning and end')
-            print(f'{chunk[0]} {existing_chunk_pos} {chunk[1]}')
             rename(dl.file_name_part, f'{dl.file_name_part}.temp')
             with open(f'{dl.file_name_part}.temp', 'rb') as i_f, open(dl.file_name_part, 'wb') as o_f:
                 o_f.write(i_f.read(chunk[0]))
@@ -125,8 +122,7 @@ except KeyError:
 except requests.exceptions.MissingSchema:
     print('[-] Argument is not a valid URL')
 except requests.exceptions.ConnectionError:
-    print('\n[-] Connection lost')
-    print(f'[*] Chunks completed: {dl.progress} / {dl.num_of_chunks}')
+    print('\n[-] Connection failed')
 except KeyboardInterrupt:
     print('\n[-] Script execution cancelled')
     print(f'[*] Chunks completed: {dl.progress} / {dl.num_of_chunks}')
