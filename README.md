@@ -1,6 +1,6 @@
 Shoddy is a python utility for downloading files over the internet with the ability to stop a download and pick up where it left off at a later time.
 
-This allows file downloads to be resumed up after losing internet connection, switching networks, and between shutdowns. 
+This allows file downloads to be resumed after losing internet connection, switching networks, and between shutdowns. 
 
 > python .\shoddy.py https[]()://releases.ubuntu.com/22.04.1/ubuntu-22.04.1-desktop-amd64.iso
 

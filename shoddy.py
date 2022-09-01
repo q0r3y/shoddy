@@ -36,7 +36,7 @@ class Download:
 
     def req_chunk(self, start, end):
         headers = {"Range": "bytes="+str(start)+"-"+str(end)}
-        chunk = dl.session.get(self.url, headers=headers)
+        chunk = self.session.get(self.url, headers=headers)
         return chunk
 
     def begin_download(self, file_path):
