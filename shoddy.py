@@ -10,6 +10,7 @@ class Download:
     def __init__(self, url):
         self.progress = 0
         self.url = url
+        self.user_agent = 'Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko'
         self.file_name = url.split('/')[-1]
         self.file_name_part = self.file_name + '.PART'
         self.file_size = self.get_file_size()
@@ -18,7 +19,10 @@ class Download:
         self.set_chunk_indexes()
 
     def get_file_size(self):
-        return int(requests.head(self.url).headers['Content-Length'])
+        headers = {'User-Agent': self.user_agent}
+        res = requests.head(self.url, headers=headers)
+        content_length = res.headers['Content-Length']
+        return int(content_length)
 
     def set_num_chunks(self):
         digits = len(str(int(self.file_size_mb)))
@@ -35,8 +39,11 @@ class Download:
             for start in range(0, self.file_size, chunk_size)]
 
     def req_chunk(self, start, end):
-        headers = {"Range": "bytes="+str(start)+"-"+str(end)}
+        headers = {'User-Agent': self.user_agent, "Range": "bytes="+str(start)+"-"+str(end)}
         chunk = self.session.get(self.url, headers=headers)
+        if (chunk.status_code != 206):
+            print(f'[-] HTTP Status code: {chunk.status_code}')
+            exit()
         return chunk
 
     def begin_download(self, file_path):
@@ -126,5 +133,3 @@ except requests.exceptions.ConnectionError:
 except KeyboardInterrupt:
     print('\n[-] Script execution cancelled')
     print(f'[*] Chunks completed: {dl.progress} / {dl.num_of_chunks}')
-except:
-    print("[-] An unknown error has occured")
