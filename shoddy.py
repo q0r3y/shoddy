@@ -2,14 +2,15 @@ import sys
 import hashlib
 import requests
 from math import ceil
-from time import time
+from time import time, sleep
 from os import path, rename, remove
 
 class Download:
 
-    def __init__(self, url):
+    def __init__(self, url, retry_limit=100):
         self.progress = 0
         self.url = url
+        self.retry_limit = retry_limit
         self.user_agent = 'Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko'
         self.file_name = url.split('/')[-1]
         self.file_name_part = self.file_name + '.PART'
@@ -40,7 +41,7 @@ class Download:
 
     def req_chunk(self, start, end):
         headers = {'User-Agent': self.user_agent, "Range": "bytes="+str(start)+"-"+str(end)}
-        chunk = self.session.get(self.url, headers=headers)
+        chunk = self.session.get(self.url, headers=headers, timeout=10)
         if (chunk.status_code != 206):
             print(f'[-] HTTP Status code: {chunk.status_code}')
             exit()
@@ -49,9 +50,23 @@ class Download:
     def begin_download(self, file_path):
         self.progress_bar(self.progress, self.num_of_chunks)
         for i,(start, end) in enumerate(self.chunk_indexes):
-            file_path.write(self.req_chunk(start, end).content)
-            self.progress += 1
-            self.progress_bar(self.progress, self.num_of_chunks)
+            attempt = 0
+            while (attempt != self.retry_limit):
+                try:
+                    attempt += 1
+                    res = self.req_chunk(start, end)
+                    # Needed to prevent writing of partial chunk when connection is lost
+                    if (len(res.content) == (end - start + 1)):
+                        file_path.write(res.content)
+                        self.progress += 1
+                        self.progress_bar(self.progress, self.num_of_chunks)
+                        break
+                except requests.exceptions.ConnectionError:
+                    print(f'[-] Unable to download chunk. Retrying ({attempt}/{self.retry_limit})')
+                    sleep(2)
+            if (attempt == self.retry_limit):
+                print(f'[-] Unable to download file. Try again later.')
+                break
 
     def progress_bar(self, current, total, bar_length=20):
         fraction = current / total
@@ -91,7 +106,8 @@ def check_for_existing_file(dl):
     if (path.exists(dl.file_name_part)):
         if (dl.file_size != path.getsize(dl.file_name_part)):
             set_download_progress(dl)
-            print(f'[*] Partial File Found. Resuming Progress at chunk: {dl.progress} / {dl.num_of_chunks}')
+            print(f'[*] Partial File Found. Resuming Progress at chunk: \
+                {dl.progress} / {dl.num_of_chunks}')
 
     if (path.exists(dl.file_name)):
         if (dl.file_size == path.getsize(dl.file_name)):
