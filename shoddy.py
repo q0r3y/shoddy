@@ -22,7 +22,7 @@ class Download:
         self.set_chunk_indexes()
 
     def get_file_size(self):
-        headers = {"User-Agent": self.user_agent}
+        headers = {"User-Agent": self.user_agent, "Accept-Encoding": None}
         res = requests.head(self.url, headers=headers)
         content_length = res.headers["Content-Length"]
         return int(content_length)
@@ -87,10 +87,11 @@ class Download:
 
 def print_sha256(file_name):
     sha256_hash = hashlib.sha256()
+    print(f"[*] Calculating SHA256...")
     with open(file_name, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
             sha256_hash.update(byte_block)
-        print(f"[*] SHA256: {sha256_hash.hexdigest()}")
+        print(f"[+] SHA256: {sha256_hash.hexdigest()}")
 
 
 def set_download_progress(dl):
@@ -156,9 +157,9 @@ try:
     print(f"[+] Number of chunks set to: {dl.num_of_chunks}")
     write_file_to_disk(dl)
 except IndexError:
-    print("[-] Missing argument")
+    print("[-] Missing URL argument [python3 ./shoddy <url>]")
 except KeyError:
-    print("[-] Missing header: Content-Length")
+    print("[-] Missing header: Content-Length. Check the URL and try again.")
 except requests.exceptions.MissingSchema:
     print("[-] Argument is not a valid URL")
 except requests.exceptions.ConnectionError:
