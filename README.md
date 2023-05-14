@@ -7,7 +7,7 @@ This allows file downloads to be resumed after losing internet connection, switc
 >[+] Downloading file: ubuntu-22.04.1-desktop-amd64.iso<br>
 >[+] File size: 3826.83136 MB<br>
 >[+] Number of chunks set to: 512<br>
->[|] Downloading: 20%
+>[|] Downloading: 20%<br>
 >[-] Script execution cancelled<br>
 >[\*] Chunks completed: 103 / 512<br>
 
