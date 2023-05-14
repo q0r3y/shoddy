@@ -15,7 +15,7 @@ class Download:
             "Mozilla/5.0 (Windows NT 6.1; Trident/7.0; rv:11.0) like Gecko"
         )
         self.file_name = url.split("/")[-1]
-        self.file_name_part = self.file_name + ".PART"
+        self.file_name_part = self.file_name + ".shoddy"
         self.file_size = self.get_file_size()
         self.file_size_mb = self.file_size / 1000000
         self.set_num_chunks()
@@ -59,10 +59,11 @@ class Download:
         return chunk
 
     def begin_download(self, file_path):
-        self.progress_bar(self.progress, self.num_of_chunks)
+        self.progress_bar(self.progress, self.num_of_chunks, 0)
         for i, (start, end) in enumerate(self.chunk_indexes):
             attempt = 0
             while attempt != self.retry_limit:
+                self.progress_bar(self.progress, self.num_of_chunks, i % 4)
                 try:
                     attempt += 1
                     res = self.req_chunk(start, end)
@@ -70,7 +71,6 @@ class Download:
                     if len(res.content) == (end - start + 1):
                         file_path.write(res.content)
                         self.progress += 1
-                        self.progress_bar(self.progress, self.num_of_chunks)
                         break
                 except requests.exceptions.ConnectionError:
                     print(
@@ -81,12 +81,14 @@ class Download:
                 print(f"[-] Unable to download file. Try again later.")
                 break
 
-    def progress_bar(self, current, total, bar_length=20):
+    def progress_bar(self, current, total, progress_index):
+        progress_indicator = ["-", "\\", "|", "/"]
         fraction = current / total
-        arrow = int(fraction * bar_length - 1) * "-" + ">"
-        padding = int(bar_length - len(arrow)) * " "
         ending = "\n" if current == total else "\r"
-        print(f"[*] Progress: [{arrow}{padding}] {int(fraction*100)}%", end=ending)
+        print(
+            f"\033[?25l[{progress_indicator[progress_index]}] Downloading: {int(fraction*100)}%",
+            end=ending,
+        )
 
 
 def print_sha256(file_name):
@@ -125,8 +127,7 @@ def check_for_existing_file(dl):
         if dl.file_size != path.getsize(dl.file_name_part):
             set_download_progress(dl)
             print(
-                f"[*] Partial File Found. Resuming Progress at chunk: \
-                {dl.progress} / {dl.num_of_chunks}"
+                f"[*] Found existing download. Resuming Progress at chunk: {dl.progress} / {dl.num_of_chunks}"
             )
 
     if path.exists(dl.file_name):
@@ -147,8 +148,9 @@ def write_file_to_disk(dl):
         end_time = time()
 
     if path.getsize(dl.file_name_part) == dl.file_size:
+        complete_time = round((end_time - start_time), 2)
         rename(dl.file_name_part, dl.file_name)
-        print(f"[+] Download completed in: {end_time - start_time} seconds")
+        print(f"[+] Download completed in: {complete_time} seconds")
         print_sha256(dl.file_name)
 
 
@@ -158,7 +160,7 @@ try:
     check_for_existing_file(dl)
     print(f"[+] Downloading file: {dl.file_name}")
     print(f"[+] File size: {dl.file_size_mb} MB")
-    print(f"[+] Number of chunks set to: {dl.num_of_chunks}")
+    print(f"[+] Number of chunks: {dl.num_of_chunks}")
     write_file_to_disk(dl)
 except IndexError:
     print("[-] Missing URL argument [python3 ./shoddy <url>]")
@@ -171,3 +173,5 @@ except requests.exceptions.ConnectionError:
 except KeyboardInterrupt:
     print("\n[-] Script execution cancelled")
     print(f"[*] Chunks completed: {dl.progress} / {dl.num_of_chunks}")
+finally:
+    print("\033[?25h", end="")
