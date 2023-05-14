@@ -24,8 +24,12 @@ class Download:
     def get_file_size(self):
         headers = {"User-Agent": self.user_agent, "Accept-Encoding": None}
         res = requests.head(self.url, headers=headers)
+        accepts_ranges = res.headers["Accept-Ranges"]
         content_length = res.headers["Content-Length"]
-        return int(content_length)
+        if accepts_ranges != "bytes":
+            raise KeyError("Accept-Ranges")
+        else:
+            return int(content_length)
 
     def set_num_chunks(self):
         digits = len(str(int(self.file_size_mb)))
@@ -158,8 +162,8 @@ try:
     write_file_to_disk(dl)
 except IndexError:
     print("[-] Missing URL argument [python3 ./shoddy <url>]")
-except KeyError:
-    print("[-] Missing header: Content-Length. Check the URL and try again.")
+except KeyError as header:
+    print(f"[-] Response header: {header} missing or invalid. Unable to download.")
 except requests.exceptions.MissingSchema:
     print("[-] Argument is not a valid URL")
 except requests.exceptions.ConnectionError:
